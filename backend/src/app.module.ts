@@ -14,18 +14,21 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module.js';
 import { PollsModule } from './polls/polls.module.js';
 import { UsersModule } from './users/users.module.js';
 import { FeedModule } from './feed/feed.module.js';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
 
 @Module({
   imports: [
+    // Подключение к базе данных MySQL
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: 'rootpassword', // Пароль из docker-compose
-      database: 'nextgame_db', // Название БД из docker-compose
+      password: 'rootpassword', // Пароль из docker-compose.yml
+      database: 'nextgame_db', // Название БД из docker-compose.yml
       entities: [User, Game, Subscription, News, Poll, Option, Vote],
-      synchronize: true,
+      synchronize: true, // Автоматически создаёт и обновляет таблицы
     }),
     AuthModule,
     GamesModule,
@@ -35,7 +38,7 @@ import { FeedModule } from './feed/feed.module.js';
     UsersModule,
     FeedModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

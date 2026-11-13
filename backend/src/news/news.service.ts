@@ -11,11 +11,16 @@ export class NewsService {
     @InjectRepository(Game) private gamesRepository: Repository<Game>,
   ) {}
 
-  // Создание новости (с проверкой, что игру создал этот разработчик)
+  // 1. Создание новости (с поддержкой статуса и прикреплённой фотографии)
   async createNews(
     gameId: number,
     developerId: number,
-    data: { title: string; content: string },
+    data: {
+      title: string;
+      content: string;
+      status?: NewsStatus;
+      image_url?: string;
+    },
   ) {
     const game = await this.gamesRepository.findOne({
       where: { game_id: gameId, developer: { user_id: developerId } },
@@ -26,22 +31,25 @@ export class NewsService {
     }
 
     const news = this.newsRepository.create({
-      ...data,
+      title: data.title,
+      content: data.content,
+      status: data.status || NewsStatus.DRAFT,
+      image_url: data.image_url,
       game: { game_id: gameId },
     });
 
     return this.newsRepository.save(news);
   }
 
-  // Получить все опубликованные новости конкретной игры (для игроков)
+  // 2. Получить все опубликованные новости конкретной игры (для игроков)
   async getPublishedNewsForGame(gameId: number) {
     return this.newsRepository.find({
       where: { game: { game_id: gameId }, status: NewsStatus.PUBLISHED },
-      order: { created_at: 'DESC' }, // Сначала свежие
+      order: { created_at: 'DESC' },
     });
   }
 
-  // Обновить новость (проверка авторства идет через связь с игрой)
+  // 3. Обновить новость (проверка авторства идёт через связь с игрой)
   async updateNews(
     newsId: number,
     developerId: number,
@@ -61,7 +69,7 @@ export class NewsService {
     return this.newsRepository.save(news);
   }
 
-  // Удалить новость
+  // 4. Удалить новость
   async deleteNews(newsId: number, developerId: number) {
     const news = await this.newsRepository.findOne({
       where: { news_id: newsId, game: { developer: { user_id: developerId } } },

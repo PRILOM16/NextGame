@@ -13,46 +13,30 @@ import {
   BadRequestException,
   Query,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { GamesService } from './games.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/roles.guard.js';
 import { Roles } from '../auth/roles.decorator.js';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import * as fs from 'fs';
+import { createUploadConfig } from '../common/upload.config.js';
 
-// Выносим конфиг Multer отдельно, чтобы переиспользовать его
-const multerConfig = {
-  storage: diskStorage({
-    destination: (req, file, cb) => {
-      const uploadPath = './uploads/covers';
-      if (!fs.existsSync(uploadPath)) {
-        fs.mkdirSync(uploadPath, { recursive: true });
-      }
-      cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      cb(null, `cover-${uniqueSuffix}${extname(file.originalname)}`);
-    },
-  }),
-};
+// Настройка сохранения обложек игр в папку ./uploads/covers
+const coverUploadConfig = createUploadConfig('covers', 'cover');
 
 @Controller('games')
 export class GamesController {
   constructor(private readonly gamesService: GamesService) {}
 
   // ==========================================
-  // СОЗДАНИЕ ИГРЫ
+  // 1. СОЗДАНИЕ НОВОЙ ИГРЫ (ТОЛЬКО РАЗРАБОТЧИК)
   // ==========================================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEVELOPER')
   @Post()
-  @UseInterceptors(FileInterceptor('cover', multerConfig))
+  @UseInterceptors(FileInterceptor('cover', coverUploadConfig))
   async create(
     @Request() req: any,
-    @Body() body: any,
+    @Body() body: { title: string; description: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const developerId = req.user.user_id || req.user.sub;
@@ -67,7 +51,7 @@ export class GamesController {
   }
 
   // ==========================================
-  // ПОЛУЧЕНИЕ ВСЕХ ИГР
+  // 2. ПОЛУЧЕНИЕ ВСЕХ ИГР (КАТАЛОГ)
   // ==========================================
   @Get()
   async findAll(@Query('search') search?: string) {
@@ -75,7 +59,26 @@ export class GamesController {
   }
 
   // ==========================================
-  // ПОЛУЧЕНИЕ ОДНОЙ ИГРЫ ПО ID (ДОБАВЛЕНО СЮДА)
+  // 3. ОБЩАЯ СТАТИСТИКА ПЛАТФОРМЫ
+  // ==========================================
+  @Get('stats')
+  async getStats() {
+    return this.gamesService.getPlatformStats();
+  }
+
+  // ==========================================
+  // 4. АНАЛИТИКА РАЗРАБОТЧИКА ПО ЕГО ИГРАМ
+  // ==========================================
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('DEVELOPER')
+  @Get('developer/analytics')
+  async getDeveloperAnalytics(@Request() req: any) {
+    const developerId = req.user.user_id || req.user.sub;
+    return this.gamesService.getDeveloperAnalytics(developerId);
+  }
+
+  // ==========================================
+  // 5. ПОЛУЧЕНИЕ ОДНОЙ ИГРЫ ПО ID
   // ==========================================
   @Get(':id')
   async findOne(@Param('id') id: string) {
@@ -83,7 +86,7 @@ export class GamesController {
   }
 
   // ==========================================
-  // ОБНОВЛЕНИЕ ИГРЫ
+  // 6. ОБНОВЛЕНИЕ ИГРЫ
   // ==========================================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEVELOPER')
@@ -98,18 +101,20 @@ export class GamesController {
   }
 
   // ==========================================
-  // ОБНОВЛЕНИЕ ОБЛОЖКИ
+  // 7. ЗАГРУЗКА ОБЛОЖКИ ИГРЫ
   // ==========================================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEVELOPER')
   @Post(':id/cover')
-  @UseInterceptors(FileInterceptor('cover', multerConfig))
+  @UseInterceptors(FileInterceptor('cover', coverUploadConfig))
   async uploadCover(
     @Param('id') id: string,
     @Request() req: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException('Файл не найден');
+    if (!file) {
+      throw new BadRequestException('Файл не найден');
+    }
 
     const developerId = req.user.user_id || req.user.sub;
     const coverUrl = `/uploads/covers/${file.filename}`;
@@ -120,7 +125,7 @@ export class GamesController {
   }
 
   // ==========================================
-  // УДАЛЕНИЕ ИГРЫ
+  // 8. УДАЛЕНИЕ ИГРЫ
   // ==========================================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEVELOPER')
