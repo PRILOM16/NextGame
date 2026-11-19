@@ -1,0 +1,183 @@
+### ==========================================
+### ПЕРЕМЕННЫЕ И ДАННЫЕ ДЛЯ ТЕСТИРОВАНИЯ
+### ==========================================
+@dev_token = ТВОЙ_ТОКЕН_РАЗРАБОТЧИКА
+@user_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IlRlc3RVc2VyRnJvbnRAZ21haWwuY29tIiwic3ViIjo0LCJyb2xlIjoiVVNFUiIsImlhdCI6MTc5NDU4MzU1MSwiZXhwIjoxNzk0NjY5OTUxfQ.IpTjnH339e243AEX64TAc6YP5bL8WH21u8p1C3Wu5Lw
+@base_url = http://localhost:3000
+
+# ТЕСТОВЫЕ ДАННЫЕ В БАЗЕ:
+# ----------------------
+# User (Обычный игрок):
+# - name: PlayerOne
+# - email: player@test.com
+# - password: gamerpassword
+# - role: USER
+# ----------------------
+# Developer (Разработчик):
+# - name: Dev2
+# - email: dev2@test.com
+# - password: 123
+# - role: DEVELOPER
+# ----------------------
+
+
+### ==========================================
+### БЛОК: АВТОРИЗАЦИЯ И ПРОФИЛЬ
+### ==========================================
+
+### Регистрация нового разработчика
+POST {{base_url}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Dev2",
+  "email": "dev2@test.com",
+  "password": "123",
+  "role": "DEVELOPER"
+}
+
+### Вход (Логин) -> Скопируй токен из ответа в переменную @dev_token сверху!
+POST {{base_url}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "TestUSerFront@gmail.com",
+  "password": "1234567890"
+}
+
+### 1. Получить данные своего профиля
+GET {{base_url}}/users/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IlRlc3RVc2VyRnJvbnRAZ21haWwuY29tIiwic3ViIjo0LCJyb2xlIjoiVVNFUiIsImlhdCI6MTc5NDU4OTI2MCwiZXhwIjoxNzk0Njc1NjYwfQ.0JEDL1JKGApA3yFXemBVBCYFqHanQQtoH4KgXgp8Mz8
+
+### 2. Изменить имя (никнейм)
+PATCH {{base_url}}/users/me
+Content-Type: application/json
+Authorization: Bearer {{dev_token}}
+
+{
+  "name": "SuperGamer2026"
+}
+
+### 3. Загрузить аватарку профиля (Убедись, что картинка лежит рядом)
+POST {eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IlRlc3RVc2VyRnJvbnRAZ21haWwuY29tIiwic3ViIjo0LCJyb2xlIjoiVVNFUiIsImlhdCI6MTc5NDU4MzU1MSwiZXhwIjoxNzk0NjY5OTUxfQ.IpTjnH339e243AEX64TAc6YP5bL8WH21u8p1C3Wu5Lw}/users/me/avatar
+Authorization: Bearer {{dev_token}}
+Content-Type: multipart/form-data; boundary=AvatarBoundary
+
+--AvatarBoundary
+Content-Disposition: form-data; name="avatar"; filename="Monkey.jpg"
+Content-Type: image/jpeg
+
+< ./Monkey.jpg
+--AvatarBoundary--
+
+
+### ==========================================
+### БЛОК: ИГРЫ (Games)
+### ==========================================
+
+### Добавление новой игры (только DEVELOPER)
+POST {{base_url}}/games
+Content-Type: application/json
+Authorization: Bearer {{dev_token}}
+
+{
+  "title": "My Awesome Game Dev2.1",
+  "description": "Это моя первая игра в каталоге NextGame!"
+}
+
+### Получение каталога всех игр
+GET {{base_url}}/games
+
+### Редактирование своей игры
+PATCH {{base_url}}/games/6
+Content-Type: application/json
+Authorization: Bearer {{dev_token}}
+
+{
+  "title": "My Awesome Game - Remastered"
+}
+
+### Загрузка обложки игры
+POST {{base_url}}/games/6/cover
+Authorization: Bearer {{dev_token}}
+Content-Type: multipart/form-data; boundary=MyBoundary
+
+--MyBoundary
+Content-Disposition: form-data; name="cover"; filename="Monkey.jpg"
+Content-Type: image/jpeg
+
+< ./Monkey.jpg
+--MyBoundary--
+
+### Удаление своей игры
+DELETE {{base_url}}/games/6
+Authorization: Bearer {{dev_token}}
+
+
+### ==========================================
+### БЛОК: НОВОСТИ (News)
+### ==========================================
+
+### 1. Создание новости к игре (По умолчанию DRAFT)
+POST {{base_url}}/games/6/news
+Content-Type: application/json
+Authorization: Bearer {{dev_token}}
+
+{
+  "title": "Патч 1.0.1: Исправление багов",
+  "content": "Мы исправили баг с проваливанием под текстуры."
+}
+
+### 2. Просмотр опубликованных новостей игры
+GET {{base_url}}/games/6/news
+
+### 3. Публикация новости
+PATCH {{base_url}}/news/1
+Content-Type: application/json
+Authorization: Bearer {{dev_token}}
+
+{
+  "status": "PUBLISHED",
+  "title": "Патч 1.0.1 (Опубликовано)"
+}
+
+### 4. Удаление новости
+DELETE {{base_url}}/news/1
+Authorization: Bearer {{dev_token}}
+
+
+### ==========================================
+### БЛОК: ПОДПИСКИ (Subscriptions)
+### ==========================================
+
+### Подписаться / Отписаться от игры (Тумблер)
+POST {{base_url}}/subscriptions/6
+Authorization: Bearer {{user_token}}
+
+### Получить список моих подписок
+GET {{base_url}}/subscriptions/my
+Authorization: Bearer {{user_token}}
+
+
+### ==========================================
+### БЛОК: ОПРОСЫ (Polls & Votes)
+### ==========================================
+
+### 1. Создать опрос с вариантами ответов (только DEVELOPER)
+POST {{base_url}}/games/6/polls
+Content-Type: application/json
+Authorization: Bearer {{dev_token}}
+
+{
+  "question": "Какую фичу добавить в следующем патче?",
+  "options": [
+    "Мультиплеер",
+    "Новые квесты",
+    "Улучшение графики"
+  ]
+}
+
+### Создание ленты для пользователя
+GET {{base_url}}/feed
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IlRlc3RVc2VyRnJvbnRAZ21haWwuY29tIiwic3ViIjo0LCJyb2xlIjoiVVNFUiIsImlhdCI6MTc5NDU4MzU1MSwiZXhwIjoxNzk0NjY5OTUxfQ.IpTjnH339e243AEX64TAc6YP5bL8WH21u8p1C3Wu5Lw
