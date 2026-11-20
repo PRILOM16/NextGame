@@ -74,11 +74,25 @@
                       </p>
 
                       <span
-                        class="inline-block mt-1 px-2 py-0.5 bg-[#111111] border border-[#8294FF] text-[#8294FF] text-[8px] rounded-full uppercase tracking-wider font-semibold"
+                        class="inline-block mt-1 px-2 py-0.5 bg-[#111111] border text-[8px] rounded-full uppercase tracking-wider font-semibold"
+                        :class="
+                          authStore.isSuperuser
+                            ? 'border-red-500 text-red-400'
+                            : 'border-[#8294FF] text-[#8294FF]'
+                        "
                       >
-                        {{ isDeveloper ? "Разработчик" : "Игрок" }}
+                        {{ authStore.roleLabel }}
                       </span>
                     </div>
+
+                    <router-link
+                      v-if="authStore.isSuperuser"
+                      to="/superuser"
+                      @click="isDropdownOpen = false"
+                      class="flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-[#2A2D3E] transition-colors font-bold"
+                    >
+                      <span>👥</span> Управление пользователями
+                    </router-link>
 
                     <router-link
                       to="/profile"
@@ -89,7 +103,7 @@
                     </router-link>
 
                     <router-link
-                      v-if="isDeveloper"
+                      v-if="authStore.canCreateContent"
                       to="/developer/analytics"
                       @click="isDropdownOpen = false"
                       class="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-[#2A2D3E] transition-colors"
@@ -153,7 +167,7 @@
       >
         <!-- Блок подписок (показываем игрокам и гостям) -->
         <div
-          v-if="!isDeveloper"
+          v-if="!authStore.canCreateContent"
           class="bg-[#181A24] rounded-2xl p-5 border border-gray-800/50 shadow-lg"
         >
           <h2 class="text-white font-bold text-lg mb-1">Ваши подписки</h2>
@@ -256,8 +270,28 @@
             Лента
           </router-link>
 
+          <!-- Раздел для Суперюзера -->
+          <template v-if="authStore.isSuperuser">
+            <div class="border-t border-gray-800/80 my-2 mx-2"></div>
+
+            <p
+              class="text-[10px] text-red-400 uppercase font-bold tracking-widest px-3 pb-1"
+            >
+              Администрирование
+            </p>
+
+            <router-link
+              to="/superuser"
+              :class="getLinkClass('/superuser')"
+              class="flex items-center gap-3 p-3 w-full rounded-xl font-bold text-sm transition-colors border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+            >
+              <span class="text-lg">👥</span>
+              Пользователи
+            </router-link>
+          </template>
+
           <!-- Раздел инструментов разработчика -->
-          <template v-if="isDeveloper">
+          <template v-if="authStore.canCreateContent">
             <div class="border-t border-gray-800/80 my-2 mx-2"></div>
 
             <p
@@ -335,12 +369,11 @@ const searchQuery = ref("");
 
 // Скрываем шапку и меню на страницах входа и регистрации
 const isAuthPage = computed(() => {
-  return route.name === "login" || route.name === "register";
-});
-
-// Проверка, является ли пользователь разработчиком
-const isDeveloper = computed(() => {
-  return authStore.user?.role === "DEVELOPER";
+  return (
+    route.name === "login" ||
+    route.name === "register" ||
+    route.name === "superuser-login"
+  );
 });
 
 // Подсветка активного пункта меню
@@ -359,6 +392,7 @@ const visibleSubscriptions = computed(() => {
     : mySubscriptions.value.slice(0, 3);
 });
 
+// Загружаем список подписок игрока для левой боковой панели
 const fetchSubscriptions = async () => {
   if (!authStore.user || authStore.user.role !== "USER") {
     mySubscriptions.value = [];

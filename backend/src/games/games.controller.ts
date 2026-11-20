@@ -39,13 +39,12 @@ export class GamesController {
     @Body() body: { title: string; description: string },
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const developerId = req.user.user_id || req.user.sub;
     const coverUrl = file ? `/uploads/covers/${file.filename}` : undefined;
 
     return this.gamesService.createGame(
       body.title,
       body.description,
-      developerId,
+      req.user.user_id,
       coverUrl,
     );
   }
@@ -73,8 +72,11 @@ export class GamesController {
   @Roles('DEVELOPER')
   @Get('developer/analytics')
   async getDeveloperAnalytics(@Request() req: any) {
-    const developerId = req.user.user_id || req.user.sub;
-    return this.gamesService.getDeveloperAnalytics(developerId);
+    const isSuperuser = req.user.role === 'SUPERUSER';
+    return this.gamesService.getDeveloperAnalytics(
+      req.user.user_id,
+      isSuperuser,
+    );
   }
 
   // ==========================================
@@ -96,8 +98,13 @@ export class GamesController {
     @Request() req: any,
     @Body() body: { title?: string; description?: string },
   ) {
-    const developerId = req.user.user_id || req.user.sub;
-    return this.gamesService.updateGame(+id, developerId, body);
+    const isSuperuser = req.user.role === 'SUPERUSER';
+    return this.gamesService.updateGame(
+      +id,
+      req.user.user_id,
+      body,
+      isSuperuser,
+    );
   }
 
   // ==========================================
@@ -116,12 +123,15 @@ export class GamesController {
       throw new BadRequestException('Файл не найден');
     }
 
-    const developerId = req.user.user_id || req.user.sub;
+    const isSuperuser = req.user.role === 'SUPERUSER';
     const coverUrl = `/uploads/covers/${file.filename}`;
 
-    return this.gamesService.updateGame(+id, developerId, {
-      cover_url: coverUrl,
-    });
+    return this.gamesService.updateGame(
+      +id,
+      req.user.user_id,
+      { cover_url: coverUrl },
+      isSuperuser,
+    );
   }
 
   // ==========================================
@@ -131,7 +141,7 @@ export class GamesController {
   @Roles('DEVELOPER')
   @Delete(':id')
   async remove(@Param('id') id: string, @Request() req: any) {
-    const developerId = req.user.user_id || req.user.sub;
-    return this.gamesService.deleteGame(+id, developerId);
+    const isSuperuser = req.user.role === 'SUPERUSER';
+    return this.gamesService.deleteGame(+id, req.user.user_id, isSuperuser);
   }
 }

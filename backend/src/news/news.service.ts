@@ -21,9 +21,14 @@ export class NewsService {
       status?: NewsStatus;
       image_url?: string;
     },
+    isSuperuser = false,
   ) {
+    const whereCondition = isSuperuser
+      ? { game_id: gameId }
+      : { game_id: gameId, developer: { user_id: developerId } };
+
     const game = await this.gamesRepository.findOne({
-      where: { game_id: gameId, developer: { user_id: developerId } },
+      where: whereCondition,
     });
 
     if (!game) {
@@ -41,6 +46,25 @@ export class NewsService {
     return this.newsRepository.save(news);
   }
 
+  // Вспомогательный метод: найти новость (суперюзеру доступна любая, разработчику — только у своей игры)
+  private async findOwnedNews(
+    newsId: number,
+    developerId: number,
+    isSuperuser: boolean,
+  ) {
+    const whereCondition = isSuperuser
+      ? { news_id: newsId }
+      : { news_id: newsId, game: { developer: { user_id: developerId } } };
+
+    const news = await this.newsRepository.findOne({ where: whereCondition });
+
+    if (!news) {
+      throw new NotFoundException('Новость не найдена или у вас нет прав');
+    }
+
+    return news;
+  }
+
   // 2. Получить все опубликованные новости конкретной игры (для игроков)
   async getPublishedNewsForGame(gameId: number) {
     return this.newsRepository.find({
@@ -49,37 +73,22 @@ export class NewsService {
     });
   }
 
-  // 3. Обновить новость (проверка авторства идёт через связь с игрой)
+  // 3. Обновить новость
   async updateNews(
     newsId: number,
     developerId: number,
     updateData: Partial<News>,
+    isSuperuser = false,
   ) {
-    const news = await this.newsRepository.findOne({
-      where: { news_id: newsId, game: { developer: { user_id: developerId } } },
-    });
-
-    if (!news) {
-      throw new NotFoundException(
-        'Новость не найдена или у вас нет прав на её изменение',
-      );
-    }
+    const news = await this.findOwnedNews(newsId, developerId, isSuperuser);
 
     Object.assign(news, updateData);
     return this.newsRepository.save(news);
   }
 
   // 4. Удалить новость
-  async deleteNews(newsId: number, developerId: number) {
-    const news = await this.newsRepository.findOne({
-      where: { news_id: newsId, game: { developer: { user_id: developerId } } },
-    });
-
-    if (!news) {
-      throw new NotFoundException(
-        'Новость не найдена или у вас нет прав на её удаление',
-      );
-    }
+  async deleteNews(newsId: number, developerId: number, isSuperuser = false) {
+    const news = await this.findOwnedNews(newsId, developerId, isSuperuser);
 
     await this.newsRepository.remove(news);
     return { message: 'Новость удалена' };

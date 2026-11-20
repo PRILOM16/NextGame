@@ -303,9 +303,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { api } from "../api";
+import { useRoute } from "vue-router";
+import { api, getErrorMessage } from "../api";
 import { useAuthStore } from "../stores/auth";
 
+const route = useRoute();
 const authStore = useAuthStore();
 
 // Состояние формы
@@ -341,11 +343,21 @@ const fetchDeveloperGames = async () => {
     const myId = authStore.user?.user_id;
     const response = await api.get("/games");
 
-    developerGames.value = response.data.filter(
-      (game: any) => Number(game.developer?.user_id) === Number(myId),
+    // Суперюзер может публиковать новости и опросы к любой игре на сайте
+    developerGames.value = authStore.isSuperuser
+      ? response.data
+      : response.data.filter(
+          (game: any) => Number(game.developer?.user_id) === Number(myId),
+        );
+
+    const queryGameId = String(route.query.gameId || "");
+    const hasQueryGame = developerGames.value.some(
+      (game: any) => String(game.game_id) === queryGameId,
     );
 
-    if (developerGames.value.length > 0) {
+    if (hasQueryGame) {
+      selectedGameId.value = queryGameId;
+    } else if (developerGames.value.length > 0) {
       selectedGameId.value = String(developerGames.value[0].game_id);
     }
   } catch (error) {
@@ -457,8 +469,10 @@ const handleSubmit = async () => {
     }
   } catch (error: any) {
     console.error("Ошибка при публикации:", error);
-    errorMessage.value =
-      error.response?.data?.message || "Не удалось создать публикацию.";
+    errorMessage.value = getErrorMessage(
+      error,
+      "Не удалось создать публикацию.",
+    );
   } finally {
     isSubmitting.value = false;
   }
@@ -466,20 +480,3 @@ const handleSubmit = async () => {
 
 onMounted(fetchDeveloperGames);
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

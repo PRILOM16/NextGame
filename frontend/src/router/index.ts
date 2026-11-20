@@ -10,6 +10,8 @@ import DeveloperGamesView from "../views/DeveloperGames.vue";
 import DeveloperAnalyticsView from "../views/DeveloperAnalyticsView.vue";
 import AddPublicationView from "../views/AddPublicationView.vue";
 import FeedView from "../views/FeedView.vue";
+import SuperuserAuthView from "../views/SuperuserAuthView.vue";
+import SuperuserView from "../views/SuperuserView.vue";
 import { useAuthStore } from "../stores/auth";
 
 const router = createRouter({
@@ -76,6 +78,19 @@ const router = createRouter({
       component: AddPublicationView,
       meta: { requiresDeveloper: true },
     },
+
+    // 8. Отдельная авторизация и панель управления для Суперюзера
+    {
+      path: "/superuser-login",
+      name: "superuser-login",
+      component: SuperuserAuthView,
+    },
+    {
+      path: "/superuser",
+      name: "superuser-panel",
+      component: SuperuserView,
+      meta: { requiresSuperuser: true },
+    },
   ],
 });
 
@@ -88,11 +103,23 @@ router.beforeEach(async (to) => {
     await authStore.fetchProfile();
   }
 
-  // Если страница доступна только разработчикам — проверяем роль
+  // Если страница доступна только суперюзеру — проверяем роль SUPERUSER
+  if (to.meta.requiresSuperuser) {
+    if (!authStore.token) return "/superuser-login";
+
+    if (authStore.user?.role !== "SUPERUSER") {
+      return "/";
+    }
+  }
+
+  // Если страница доступна разработчикам — пускаем и разработчика, и суперюзера
   if (to.meta.requiresDeveloper) {
     if (!authStore.token) return "/login";
 
-    if (authStore.user?.role !== "DEVELOPER") {
+    if (
+      authStore.user?.role !== "DEVELOPER" &&
+      authStore.user?.role !== "SUPERUSER"
+    ) {
       return "/";
     }
   }

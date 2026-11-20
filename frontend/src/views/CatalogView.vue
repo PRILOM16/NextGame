@@ -178,40 +178,8 @@ watch(searchQuery, fetchAllGames, { immediate: true });
 </script>
 
 <style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.loader {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #1c1f2b;
-  border-bottom-color: #8294ff;
-  border-radius: 50%;
-  display: inline-block;
-  animation: rotation 1s linear infinite;
-}
-
-@keyframes rotation {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .line-clamp-2 {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

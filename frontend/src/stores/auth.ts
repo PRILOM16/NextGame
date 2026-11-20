@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { api } from "../api";
 
 export const useAuthStore = defineStore("auth", () => {
@@ -7,13 +7,26 @@ export const useAuthStore = defineStore("auth", () => {
   const user = ref<any>(null);
   const token = ref<string | null>(localStorage.getItem("token"));
 
-  // 1. Вход в аккаунт (по почте или никнейму)
-  const login = async (payload: {
-    email?: string;
-    name?: string;
-    password: string;
-  }) => {
-    const response = await api.post("/auth/login", payload);
+  // Удобные проверки роли текущего пользователя
+  const isUser = computed(() => user.value?.role === "USER");
+  const isDeveloper = computed(() => user.value?.role === "DEVELOPER");
+  const isSuperuser = computed(() => user.value?.role === "SUPERUSER");
+  const canCreateContent = computed(
+    () => isDeveloper.value || isSuperuser.value,
+  );
+
+  const roleLabel = computed(() => {
+    if (isSuperuser.value) return "Суперюзер";
+    if (isDeveloper.value) return "Разработчик";
+    return "Игрок";
+  });
+
+  // Общий метод для отправки запроса входа и сохранения токена
+  const authenticate = async (
+    endpoint: string,
+    payload: { email?: string; name?: string; password: string },
+  ) => {
+    const response = await api.post(endpoint, payload);
     const accessToken = response.data.access_token;
 
     token.value = accessToken;
@@ -21,6 +34,20 @@ export const useAuthStore = defineStore("auth", () => {
 
     await fetchProfile();
   };
+
+  // 1. Вход в аккаунт (по почте или никнейму)
+  const login = (payload: {
+    email?: string;
+    name?: string;
+    password: string;
+  }) => authenticate("/auth/login", payload);
+
+  // 1.1. Отдельный вход ТОЛЬКО для суперюзера
+  const superuserLogin = (payload: {
+    email?: string;
+    name?: string;
+    password: string;
+  }) => authenticate("/auth/superuser/login", payload);
 
   // 2. Регистрация нового пользователя
   const register = async (
@@ -53,5 +80,18 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem("token");
   };
 
-  return { user, token, login, register, fetchProfile, logout };
+  return {
+    user,
+    token,
+    isUser,
+    isDeveloper,
+    isSuperuser,
+    canCreateContent,
+    roleLabel,
+    login,
+    superuserLogin,
+    register,
+    fetchProfile,
+    logout,
+  };
 });

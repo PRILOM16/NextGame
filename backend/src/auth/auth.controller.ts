@@ -13,6 +13,7 @@ import { JwtAuthGuard } from './jwt-auth.guard.js'; // Импортируем н
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // Регистрация нового пользователя (игрок или разработчик)
   @Post('register')
   async register(@Body() body: any) {
     return this.authService.register(
@@ -23,6 +24,7 @@ export class AuthController {
     );
   }
 
+  // Обычный вход в аккаунт по почте или никнейму
   @Post('login')
   async login(
     @Body() loginDto: { email?: string; name?: string; password: string },
@@ -30,7 +32,15 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  // --- НОВЫЙ ЗАЩИЩЕННЫЙ ПУТЬ ---
+  // Отдельный вход для суперюзера (обычных пользователей не пускает)
+  @Post('superuser/login')
+  async superuserLogin(
+    @Body() loginDto: { email?: string; name?: string; password: string },
+  ) {
+    return this.authService.login(loginDto, true);
+  }
+
+  // Получить данные текущего пользователя из JWT-токена
   @UseGuards(JwtAuthGuard) // Охранник стоит прямо перед этим методом!
   @Get('profile')
   getProfile(@Request() req: any) {

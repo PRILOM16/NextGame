@@ -1,0 +1,31 @@
+
+# Dependencies
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Build files
+dist/
+coverage/
+*.tsbuildinfo
+
+# Uploaded files
+backend/uploads/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Temporary files
+*.local
+
+superuser_credentials.txt

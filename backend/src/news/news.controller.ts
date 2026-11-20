@@ -39,11 +39,17 @@ export class NewsController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const imageUrl = file ? `/uploads/news/${file.filename}` : undefined;
+    const isSuperuser = req.user.role === 'SUPERUSER';
 
-    return this.newsService.createNews(+gameId, req.user.user_id, {
-      ...body,
-      image_url: imageUrl,
-    });
+    return this.newsService.createNews(
+      +gameId,
+      req.user.user_id,
+      {
+        ...body,
+        image_url: imageUrl,
+      },
+      isSuperuser,
+    );
   }
 
   // 2. Загрузить или обновить фото для существующей новости (/news/:id/image)
@@ -61,9 +67,13 @@ export class NewsController {
     }
 
     const imageUrl = `/uploads/news/${file.filename}`;
-    return this.newsService.updateNews(+id, req.user.user_id, {
-      image_url: imageUrl,
-    });
+    const isSuperuser = req.user.role === 'SUPERUSER';
+    return this.newsService.updateNews(
+      +id,
+      req.user.user_id,
+      { image_url: imageUrl },
+      isSuperuser,
+    );
   }
 
   // 3. Получить опубликованные новости игры (доступно всем)
@@ -87,14 +97,16 @@ export class NewsController {
       image_url?: string;
     },
   ) {
-    return this.newsService.updateNews(+id, req.user.user_id, body);
+    const isSuperuser = req.user.role === 'SUPERUSER';
+    return this.newsService.updateNews(+id, req.user.user_id, body, isSuperuser);
   }
 
-  // 5. Удалить новость
+  // 6. Удалить новость
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEVELOPER')
   @Delete('news/:id')
   async deleteNews(@Param('id') id: string, @Request() req: any) {
-    return this.newsService.deleteNews(+id, req.user.user_id);
+    const isSuperuser = req.user.role === 'SUPERUSER';
+    return this.newsService.deleteNews(+id, req.user.user_id, isSuperuser);
   }
 }

@@ -151,7 +151,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { api } from "../api";
+import { api, getErrorMessage } from "../api";
 
 const router = useRouter();
 
@@ -226,13 +226,8 @@ const handleSubmit = async () => {
   } catch (error: any) {
     console.error("Ошибка добавления игры:", error);
 
-    const serverMessage = error.response?.data?.message;
-    const errorText = Array.isArray(serverMessage)
-      ? serverMessage[0]
-      : serverMessage || "Произошла ошибка при создании игры";
-
     message.value = {
-      text: errorText,
+      text: getErrorMessage(error, "Произошла ошибка при создании игры"),
       type: "error",
     };
   } finally {
@@ -240,20 +235,3 @@ const handleSubmit = async () => {
   }
 };
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

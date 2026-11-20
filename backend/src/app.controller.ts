@@ -9,6 +9,7 @@ export class AppController {
     private readonly gamesService: GamesService,
   ) {}
 
+  // Проверка работы сервера (GET /)
   @Get()
   getHello(): string {
     return this.appService.getHello();

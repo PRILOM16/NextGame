@@ -12,6 +12,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  // Вызывается автоматически после проверки токена: кладёт данные пользователя в req.user
   async validate(payload: any) {
     return { user_id: payload.sub, email: payload.email, role: payload.role };
   }

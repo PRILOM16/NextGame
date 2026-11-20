@@ -11,6 +11,7 @@ import { Game } from '../games/game.entity.js';
 export enum UserRole {
   USER = 'USER',
   DEVELOPER = 'DEVELOPER',
+  SUPERUSER = 'SUPERUSER',
 }
 
 @Entity('Users')

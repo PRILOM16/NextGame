@@ -264,6 +264,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { getErrorMessage } from "../api";
 import { useAuthStore } from "../stores/auth";
 
 const route = useRoute();
@@ -291,6 +292,7 @@ watch(isLogin, () => {
   loginMethod.value = "email"; // Сброс метода на почту при возврате
 });
 
+// Отправка формы входа или регистрации на сервер
 const handleSubmit = async () => {
   errorMessage.value = "";
   isLoading.value = true;
@@ -314,18 +316,10 @@ const handleSubmit = async () => {
     router.push("/");
   } catch (error: any) {
     if (error.response) {
-      const data = error.response.data;
-      if (data.message) {
-        errorMessage.value = Array.isArray(data.message)
-          ? data.message[0]
-          : data.message;
-      } else if (data.error) {
-        errorMessage.value = data.error;
-      } else {
-        errorMessage.value = isLogin.value
-          ? "Неверные данные для входа"
-          : "Ошибка при регистрации";
-      }
+      errorMessage.value = getErrorMessage(
+        error,
+        isLogin.value ? "Неверные данные для входа" : "Ошибка при регистрации",
+      );
     } else if (error.request) {
       errorMessage.value = "Сервер не отвечает. Проверьте подключение.";
     } else {

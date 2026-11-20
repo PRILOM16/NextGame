@@ -32,7 +32,10 @@ export function getMediaUrl(path?: string | null): string {
 /**
  * Помощник для красивого отображения даты на русском языке.
  */
-export function formatDate(date?: string | Date | null, withTime = false): string {
+export function formatDate(
+  date?: string | Date | null,
+  withTime = false,
+): string {
   if (!date) return "Не указана";
 
   const parsed = new Date(date);
@@ -53,4 +56,18 @@ export function formatDate(date?: string | Date | null, withTime = false): strin
     month: "long",
     year: "numeric",
   });
+}
+
+/**
+ * Помощник для получения понятного текста ошибки из ответа сервера.
+ */
+export function getErrorMessage(
+  error: any,
+  fallback = "Произошла ошибка",
+): string {
+  const msg = error?.response?.data?.message;
+  if (Array.isArray(msg) && msg.length > 0) return msg[0];
+  if (typeof msg === "string" && msg.trim()) return msg;
+  if (error?.response?.data?.error) return error.response.data.error;
+  return fallback;
 }

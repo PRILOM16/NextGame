@@ -185,7 +185,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { api, getMediaUrl } from "../api";
+import { api, getMediaUrl, getErrorMessage } from "../api";
 import { useAuthStore } from "../stores/auth";
 
 const authStore = useAuthStore();
@@ -284,27 +284,12 @@ const changePassword = async () => {
     confirmPassword.value = "";
   } catch (error: any) {
     console.error("Ошибка смены пароля:", error);
-    passwordError.value =
-      error.response?.data?.message || "Не удалось изменить пароль.";
+    passwordError.value = getErrorMessage(
+      error,
+      "Не удалось изменить пароль.",
+    );
   } finally {
     isSavingPassword.value = false;
   }
 };
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

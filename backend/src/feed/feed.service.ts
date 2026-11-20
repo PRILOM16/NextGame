@@ -27,6 +27,7 @@ export class FeedService {
     private votesRepository: Repository<Vote>,
   ) {}
 
+  // Собирает ленту новостей и опросов из всех игр, на которые подписан пользователь
   async getUserFeed(userId: number) {
     // 1. Получаем игры, на которые подписан пользователь
     const subscriptions = await this.subscriptionsRepository.find({

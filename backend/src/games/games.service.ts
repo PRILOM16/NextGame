@@ -167,12 +167,12 @@ export class GamesService {
   }
 
   // ==========================================
-  // 5. АНАЛИТИКА ДЛЯ РАЗРАБОТЧИКА
+  // 5. АНАЛИТИКА ДЛЯ РАЗРАБОТЧИКА (ИЛИ СУПЕРЮЗЕРА)
   // ==========================================
-  async getDeveloperAnalytics(developerId: number) {
-    // Находим все игры этого разработчика
+  async getDeveloperAnalytics(developerId: number, isSuperuser = false) {
+    // Суперюзер видит аналитику по всем играм на сайте, а разработчик — только по своим
     const games = await this.gamesRepository.find({
-      where: { developer: { user_id: developerId } },
+      where: isSuperuser ? {} : { developer: { user_id: developerId } },
       order: { created_at: 'DESC' },
     });
 
@@ -301,6 +301,25 @@ export class GamesService {
     };
   }
 
+  // Вспомогательный метод: найти игру (суперюзеру доступна любая, разработчику — только своя)
+  private async findOwnedGame(
+    gameId: number,
+    developerId: number,
+    isSuperuser: boolean,
+  ) {
+    const whereCondition = isSuperuser
+      ? { game_id: gameId }
+      : { game_id: gameId, developer: { user_id: developerId } };
+
+    const game = await this.gamesRepository.findOne({ where: whereCondition });
+
+    if (!game) {
+      throw new NotFoundException('Игра не найдена, либо нет прав');
+    }
+
+    return game;
+  }
+
   // ==========================================
   // 6. ОБНОВЛЕНИЕ ИГРЫ
   // ==========================================
@@ -308,14 +327,9 @@ export class GamesService {
     gameId: number,
     developerId: number,
     updateData: { title?: string; description?: string; cover_url?: string },
+    isSuperuser = false,
   ) {
-    const game = await this.gamesRepository.findOne({
-      where: { game_id: gameId, developer: { user_id: developerId } },
-    });
-
-    if (!game) {
-      throw new NotFoundException('Игра не найдена, либо нет прав');
-    }
+    const game = await this.findOwnedGame(gameId, developerId, isSuperuser);
 
     // Если меняется название — проверяем, не занято ли оно другой игрой
     if (updateData.title) {
@@ -348,14 +362,8 @@ export class GamesService {
   // ==========================================
   // 7. УДАЛЕНИЕ ИГРЫ
   // ==========================================
-  async deleteGame(gameId: number, developerId: number) {
-    const game = await this.gamesRepository.findOne({
-      where: { game_id: gameId, developer: { user_id: developerId } },
-    });
-
-    if (!game) {
-      throw new NotFoundException('Игра не найдена, либо нет прав');
-    }
+  async deleteGame(gameId: number, developerId: number, isSuperuser = false) {
+    const game = await this.findOwnedGame(gameId, developerId, isSuperuser);
 
     await this.gamesRepository.remove(game);
     return { message: 'Игра успешно удалена' };

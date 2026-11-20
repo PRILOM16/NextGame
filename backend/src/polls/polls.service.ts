@@ -25,9 +25,14 @@ export class PollsService {
     developerId: number,
     question: string,
     optionsData: string[],
+    isSuperuser = false,
   ) {
+    const whereCondition = isSuperuser
+      ? { game_id: gameId }
+      : { game_id: gameId, developer: { user_id: developerId } };
+
     const game = await this.gamesRepository.findOne({
-      where: { game_id: gameId, developer: { user_id: developerId } },
+      where: whereCondition,
     });
 
     if (!game) {
@@ -56,6 +61,7 @@ export class PollsService {
     };
   }
 
+  // Получить все опросы конкретной игры вместе с вариантами и подсчётом голосов
   async getPollsForGame(gameId: number) {
     const polls = await this.pollsRepository.find({
       where: { game: { game_id: gameId } },
@@ -146,6 +152,7 @@ export class PollsService {
     return { message: 'Ваш голос успешно учтен!' };
   }
 
+  // Получить список опросов, в которых текущий пользователь уже проголосовал
   async getMyVotes(userId: number) {
     const votes = await this.votesRepository.find({
       where: {
@@ -164,55 +171,79 @@ export class PollsService {
     }));
   }
 
-  async updatePollImage(pollId: number, developerId: number, imageUrl: string) {
-    // Ищем опрос, одновременно проверяя права (опрос -> игра -> разработчик)
-    const poll = await this.pollsRepository.findOne({
-      where: {
-        poll_id: pollId,
-        game: { developer: { user_id: developerId } },
-      },
-    });
+  // Вспомогательный метод: найти опрос (суперюзеру доступен любой, разработчику — только у своей игры)
+  private async findOwnedPoll(
+    pollId: number,
+    developerId: number,
+    isSuperuser: boolean,
+  ) {
+    const whereCondition = isSuperuser
+      ? { poll_id: pollId }
+      : { poll_id: pollId, game: { developer: { user_id: developerId } } };
+
+    const poll = await this.pollsRepository.findOne({ where: whereCondition });
 
     if (!poll) {
-      throw new NotFoundException(
-        'Опрос не найден или у вас нет прав на его изменение',
-      );
+      throw new NotFoundException('Опрос не найден или у вас нет прав');
     }
 
+    return poll;
+  }
+
+  // Загрузить или обновить картинку для опроса
+  async updatePollImage(
+    pollId: number,
+    developerId: number,
+    imageUrl: string,
+    isSuperuser = false,
+  ) {
+    const poll = await this.findOwnedPoll(pollId, developerId, isSuperuser);
     poll.image_url = imageUrl;
     return this.pollsRepository.save(poll);
   }
 
-  // Досрочно завершить опрос (только для его разработчика)
-  async closePoll(pollId: number, developerId: number) {
-    const poll = await this.pollsRepository.findOne({
-      where: {
-        poll_id: pollId,
-        game: {
-          developer: {
-            user_id: developerId,
-          },
-        },
-      },
-    });
-
-    if (!poll) {
-      throw new NotFoundException(
-        'Опрос не найден или у вас нет прав на его завершение',
-      );
-    }
+  // Досрочно завершить опрос (для его разработчика или суперюзера)
+  async closePoll(pollId: number, developerId: number, isSuperuser = false) {
+    const poll = await this.findOwnedPoll(pollId, developerId, isSuperuser);
 
     if (poll.status === PollStatus.CLOSED) {
       throw new ConflictException('Опрос уже завершён');
     }
 
     poll.status = PollStatus.CLOSED;
-
     await this.pollsRepository.save(poll);
 
     return {
       message: 'Опрос успешно завершён',
       poll_id: poll.poll_id,
     };
+  }
+
+  // Обновить вопрос или статус опроса
+  async updatePoll(
+    pollId: number,
+    developerId: number,
+    updateData: { question?: string; status?: PollStatus },
+    isSuperuser = false,
+  ) {
+    const poll = await this.findOwnedPoll(pollId, developerId, isSuperuser);
+
+    if (updateData.question && updateData.question.trim()) {
+      poll.question = updateData.question.trim();
+    }
+
+    if (updateData.status) {
+      poll.status = updateData.status;
+    }
+
+    return this.pollsRepository.save(poll);
+  }
+
+  // Удалить опрос
+  async deletePoll(pollId: number, developerId: number, isSuperuser = false) {
+    const poll = await this.findOwnedPoll(pollId, developerId, isSuperuser);
+
+    await this.pollsRepository.remove(poll);
+    return { message: 'Опрос успешно удалён' };
   }
 }

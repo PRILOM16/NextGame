@@ -48,9 +48,7 @@
               <span
                 class="px-3 py-1 border text-[10px] rounded-md uppercase font-bold border-[#3A4A99] text-[#8294FF] bg-[#27326B]/30"
               >
-                {{
-                  authStore.user.role === "DEVELOPER" ? "Разработчик" : "Игрок"
-                }}
+                {{ authStore.roleLabel }}
               </span>
             </h1>
 
@@ -156,7 +154,7 @@ onMounted(async () => {
     await authStore.fetchProfile();
   }
 
-  if (authStore.user) {
+  if (authStore.isUser) {
     try {
       const response = await api.get("/subscriptions/my");
       subscriptions.value = response.data;
@@ -166,36 +164,3 @@ onMounted(async () => {
   }
 });
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.loader {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #1c1f2b;
-  border-bottom-color: #8294ff;
-  border-radius: 50%;
-  display: inline-block;
-  animation: rotation 1s linear infinite;
-}
-
-@keyframes rotation {
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>

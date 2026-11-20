@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 export class FeedController {
   constructor(private readonly feedService: FeedService) {}
 
+  // Получить персональную ленту новостей и опросов для текущего пользователя
   @Get()
   async getFeed(@Request() req: any) {
     return this.feedService.getUserFeed(req.user.user_id);

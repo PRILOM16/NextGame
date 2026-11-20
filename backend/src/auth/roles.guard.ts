@@ -11,6 +11,7 @@ import { ROLES_KEY } from './roles.decorator.js';
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
+  // Проверяет, подходит ли роль пользователя под требования маршрута (суперюзера пускает всегда)
   canActivate(context: ExecutionContext): boolean {
     // Получаем роли, которые мы указали в декораторе @Roles(...) над методом
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
@@ -24,12 +25,17 @@ export class RolesGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
 
+    // Суперюзер (SUPERUSER) имеет полный доступ ко всем действиям на сайте
+    if (user?.role === 'SUPERUSER') {
+      return true;
+    }
+
     // user.role приходит из нашего JWT-токена (мы зашивали его туда при логине)
     const hasRole = requiredRoles.includes(user.role);
 
     if (!hasRole) {
       throw new ForbiddenException(
-        'У вас нет прав разработчика для выполнения этого действия',
+        'У вас нет прав для выполнения этого действия',
       );
     }
 

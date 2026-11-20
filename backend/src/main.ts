@@ -3,6 +3,7 @@ import { AppModule } from './app.module.js';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 
+// Точка входа: запускаем сервер NestJS, настраиваем раздачу картинок и CORS для фронтенда
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
